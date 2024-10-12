@@ -1,4 +1,5 @@
-﻿using Solitaire.Dragging;
+﻿using Core;
+using Solitaire.Dragging;
 using Zenject;
 
 namespace Solitaire.Installers
@@ -7,6 +8,7 @@ namespace Solitaire.Installers
     {
         public override void InstallBindings()
         {
+            Container.Bind<GameController>().AsSingle();
             Container.Bind<DragController>().AsSingle();
         }
     }

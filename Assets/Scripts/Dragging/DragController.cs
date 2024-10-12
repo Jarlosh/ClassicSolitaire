@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Solitaire.Cards;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -6,7 +7,7 @@ namespace Solitaire.Dragging
 {
     public class DragController
     {
-        private record DraggedObject(Draggable Draggable, Vector3 Origin, Vector3 Offset);
+        private record DraggedObject(CardFacade CardFacade, Vector3 Origin, Vector3 Offset);
 
         private readonly Camera _camera;
 
@@ -17,15 +18,15 @@ namespace Solitaire.Dragging
             _camera = Camera.main;
         }
         
-        public void OnDragStart(PointerEventData data, IList<Draggable> dragged)
+        public void OnDragStart(PointerEventData data, IList<CardFacade> dragged)
         {
             var pointerOrigin = PointerToWorldPoint(data);
-            foreach (var draggable in dragged)
+            foreach (var card in dragged)
             {
-                draggable.IsInteractable = false;
-                var originPosition = draggable.Position;
-                var info = new DraggedObject(draggable, originPosition, originPosition - pointerOrigin);
+                var originPosition = card.Position;
+                var info = new DraggedObject(card, originPosition, originPosition - pointerOrigin);
                 _dragged.Add(info);
+                card.IsDragged = true;
             }
         }
         
@@ -34,7 +35,7 @@ namespace Solitaire.Dragging
             var pointerOrigin = PointerToWorldPoint(data);
             foreach (var dragged in _dragged)
             {
-                dragged.Draggable.Position = pointerOrigin + dragged.Offset;
+                dragged.CardFacade.SetPosition(pointerOrigin + dragged.Offset);
             }
         }
 
@@ -42,8 +43,8 @@ namespace Solitaire.Dragging
         {
             foreach (var dragged in _dragged)
             {
-                dragged.Draggable.Position = dragged.Origin;
-                dragged.Draggable.IsInteractable = true;
+                dragged.CardFacade.IsDragged = false;
+                dragged.CardFacade.SetPosition(dragged.Origin);
             }
             _dragged.Clear();
         }
@@ -52,7 +53,7 @@ namespace Solitaire.Dragging
         {
             foreach (var dragged in _dragged)
             {
-                dragged.Draggable.IsInteractable = true;
+                dragged.CardFacade.IsDragged = false;
             }
             _dragged.Clear();
         }

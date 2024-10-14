@@ -1,14 +1,14 @@
 ﻿using System.Collections.Generic;
-using Core;
+using JetBrains.Annotations;
+using Solitaire.Core;
 using Solitaire.Dragging;
-using Tools;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using Zenject;
 
 namespace Solitaire.Cards
 {
-    public class CardPile : MonoBehaviour, IDropHandler
+    public class CardPile : MonoBehaviour, IDropHandler, IPointerClickHandler
     {
         public enum PileType
         {
@@ -20,6 +20,7 @@ namespace Solitaire.Cards
 
         [Inject] 
         private DragController _dragController;
+        
         [Inject] 
         private GameController _gameController;
 
@@ -30,40 +31,67 @@ namespace Solitaire.Cards
 
         public List<CardFacade> Cards { get; } = new();
 
-        public bool Any => Cards.Count > 0;
-        public CardFacade TopCard => Any ? Cards[^1] : null;
-        public CardFacade BottomCard => Any ? Cards[0] : null;
+        public bool HasCards => Cards.Count > 0;
+        
+        [CanBeNull] 
+        public CardFacade TopCard => HasCards ? Cards[^1] : null;
+
+        [CanBeNull] 
+        public CardFacade BottomCard => HasCards ? Cards[0] : null;
 
         public void OnDrop(PointerEventData eventData)
         {
-            if (eventData.pointerDrag.TryGetComponent<CardFacade>(out var card)
-                && _gameController.IsMoveAllowed(card, this))
-            {
-                _dragController.CompleteDrag();
-                _gameController.MoveCard(card, this);
-            }
+            _dragController.OnDropOnPile(this, eventData);
         }
 
         public void Add(CardFacade card)
         {
             Cards.Add(card);
             card.Pile = this;
-            card.IsInteractable = false;
             UpdatePosition(card);
-            card.SetOrder(DrawOrders.InPileOrderBase + (Cards.Count - 1) * 5);
+            card.UpdateOrder(Cards.Count - 1 - 1);
         }
 
         public void Remove(CardFacade card)
         {
             Cards.Remove(card);
             card.Pile = null;
-            card.IsInteractable = true;
-            card.SetOrder(DrawOrders.DefaultOrder);
+            card.UpdateOrder(0);
         }
 
         private void UpdatePosition(CardFacade card)
         {
             card.SetPosition(transform.position + Vector3.down * cardOffset * (Cards.Count - 1));
+        }
+
+        public IList<CardFacade> TraceCardsUp(CardFacade first)
+        {
+            var index = Cards.IndexOf(first);
+            if (index == -1)
+            {
+                return null;
+            }
+
+            var list = new List<CardFacade>();
+            for (int i = index; i < Cards.Count; i++)
+            {
+                list.Add(Cards[i]);
+            }
+
+            return list;
+        }
+
+        public void Reset()
+        {
+            foreach (var card in Cards.ToArray())
+            {
+                Remove(card);
+            }
+        }
+
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            _gameController.OnPileClicked(this);
         }
     }
 }

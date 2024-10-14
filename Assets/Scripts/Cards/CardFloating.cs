@@ -61,5 +61,10 @@ namespace Solitaire.Cards
                     _tweenMove.ChangeEndValue(position, true).Restart();
             }
         }
+
+        public void ResetPosition()
+        {
+            _tweenMove?.Complete();
+        }
     }
 }

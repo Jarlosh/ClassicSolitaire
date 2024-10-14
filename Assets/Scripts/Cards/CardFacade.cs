@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+using System;
 using Solitaire.Dragging;
 using Tools;
 using UnityEngine;
@@ -7,14 +7,21 @@ using Zenject;
 
 namespace Solitaire.Cards
 {
-    public class CardFacade: MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler
+    public class CardFacade : MonoBehaviour, 
+        IBeginDragHandler, 
+        IDragHandler, 
+        IEndDragHandler, 
+        IDropHandler,
+        IPointerClickHandler,
+        IPoolable<CardFacade.Values, CardFacade.Suits, bool, IMemoryPool>,
+        IDisposable
     {
         [Inject] private DragController _dragController;
         [SerializeField] private CardView _view;
         [SerializeField] private CardFloating _movement;
+        [SerializeField] private Collider2D _collider;
 
-        private Collider2D _collider;
-        private int _order;
+        private IMemoryPool _pool;
 
         public Suits Suit { get; private set; }
         public Values Value { get; private set; }
@@ -34,21 +41,22 @@ namespace Solitaire.Cards
         public bool IsDragged
         {
             get => _movement.IsDragged;
-            set
-            {
-                _movement.IsDragged = value;
-                SetOrder(value ? DrawOrders.DragOrder : _order);
-            }
+            set => _movement.IsDragged = value;
         }
 
-        public Suits StartSuit;
-        public Values StartValue;
-        
-        private void SetData(Values value, Suits suit)
+        public bool IsRevealed
         {
+            get => _view.IsRevealed;
+            set => _view.IsRevealed = value;
+        }
+
+        private void SetData(Values value, Suits suit, bool isRevealed)
+        {
+            gameObject.name = $"({value} {suit})";
             Value = value;
             Suit = suit;
             _view.SetVisual(Value, Suit);
+            IsRevealed = isRevealed;
         }
 
         public void SetPosition(Vector3 position)
@@ -56,41 +64,98 @@ namespace Solitaire.Cards
             _movement.TargetPosition = position;
         }
 
-        private void Awake()
+        private void SetOrder(int order)
         {
-            SetData(StartValue, StartSuit);
-            _collider = GetComponent<Collider2D>();
+            _view.SetOrder(order);
         }
 
+        public void ResetOrder()
+        {
+            if (!IsDragged && Pile == null)
+            {
+                SetOrder(DrawOrders.Default);
+                return;
+            }
+            UpdateOrder(IsDragged 
+                ? _dragController.IndexOf(this) 
+                : Pile.Cards.IndexOf(this));
+        }
+        
+        public void UpdateOrder(int columnIndex)
+        {
+            if (IsDragged)
+            {
+                SetOrder(DrawOrders.Drag + columnIndex * DrawOrders.TypeOffset);   
+            }
+            else if (Pile != null)
+            {
+                SetOrder(DrawOrders.InPileBase + columnIndex * DrawOrders.TypeOffset);
+            }
+            else
+            {
+                SetOrder(DrawOrders.Default);
+            }
+        }
+        
+        public void ResetPosition()
+        {
+            _movement.ResetPosition();
+        }
+        
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            if (Pile != null)
+            {
+                Pile.OnPointerClick(eventData);
+            }
+        }
+        
+        public class Factory : PlaceholderFactory<Values, Suits, bool, CardFacade>
+        {
+        }
+
+        #region Drag event handlers 
         public void OnBeginDrag(PointerEventData eventData)
         {
-            var list = new List<CardFacade> { this };
-            IsInteractable = false;
-            _dragController.OnDragStart(eventData, list);
+            _dragController.OnDragStart(this, eventData);
         }
 
         public void OnDrag(PointerEventData eventData)
         {
-            _dragController.OnDrag(eventData);
+            _dragController.OnDrag(this, eventData);
         }
 
         public void OnEndDrag(PointerEventData eventData)
         {
-            _movement.IsDragged = false;
-            _dragController.CancelDrag();
-            IsInteractable = Pile == null;
+            _dragController.OnEndDrag(this, eventData);
         }
 
         public void OnDrop(PointerEventData eventData)
         {
-            _dragController.CompleteDrag();
+            _dragController.OnDropOnCard(this, eventData);
+        }
+        #endregion
+        
+        #region IDisposable
+        public void Dispose()
+        {
+            _pool.Despawn(this);
+        }
+        #endregion IDisposable
+
+        #region IPoolable
+        public void OnSpawned(Values value, Suits suit, bool isRevealed, IMemoryPool pool)
+        {
+            _pool = pool;
+            SetData(value, suit, isRevealed);
         }
 
-        public void SetOrder(int order)
+        public void OnDespawned()
         {
-            _order = order;
-            _view.SetOrder(order);
+            _pool = null;
         }
+        #endregion IPoolable
+
 
         public enum Suits: byte
         {

@@ -2,8 +2,10 @@
 {
     public static class DrawOrders
     {
-        public const int DefaultOrder = 0;
-        public const int InPileOrderBase = 100;
-        public const int DragOrder = 1000;
+        public const int TypeOffset = 5;
+        
+        public const int Default = 0;
+        public const int InPileBase = 100;
+        public const int Drag = 1000;
     }
 }

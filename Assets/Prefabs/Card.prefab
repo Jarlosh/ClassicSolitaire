@@ -98,7 +98,7 @@ GameObject:
   - component: {fileID: 2550358601552018211}
   - component: {fileID: 2550358601552018208}
   m_Layer: 0
-  m_Name: Capsule
+  m_Name: Card
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -136,8 +136,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _view: {fileID: 2550358601552018211}
   _movement: {fileID: 4877740810931048117}
-  StartSuit: 0
-  StartValue: 0
+  _collider: {fileID: 2550358601552018208}
 --- !u!114 &4877740810931048117
 MonoBehaviour:
   m_ObjectHideFlags: 0

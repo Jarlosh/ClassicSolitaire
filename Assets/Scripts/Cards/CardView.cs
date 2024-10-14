@@ -14,6 +14,22 @@ namespace Solitaire.Cards
         [SerializeField] private SpriteRenderer _mainSuitRenderer;
         [SerializeField] private SpriteRenderer _cornerSuitRenderer;
         [SerializeField] private SpriteRenderer _valueRenderer;
+        private bool _isRevealed = true;
+
+        public int SortingOrder { get; private set; }
+
+        public bool IsRevealed
+        {
+            get => _isRevealed;
+            set => SetRevealed(value);
+        }
+
+        private void SetRevealed(bool value)
+        {
+            _face.gameObject.SetActive(value);
+            _back.gameObject.SetActive(!value);
+            _isRevealed = true;
+        }
 
         public void SetVisual(CardFacade.Values value, CardFacade.Suits suit)
         {
@@ -27,6 +43,12 @@ namespace Solitaire.Cards
         }
 
         public void SetOrder(int order)
+        {
+            SortingOrder = order;
+            SetOrderInternal(order);
+        }
+
+        private void SetOrderInternal(int order)
         {
             _border.sortingOrder = order;
             _face.sortingOrder = order + 1;
